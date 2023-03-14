@@ -154,10 +154,68 @@ SELECT * FROM pizza_runner.pizza_toppings;
  
 ## 🎯Questions & Solutions
 ### ✔️Data Type Check
+- Check data type of each column in ```customer_orders``` and ```runner_orders``` table to compare the changes after cleaning those tables. 
+
+```sql
+SELECT 
+  table_name,
+  column_name,
+  data_type
+FROM information_schema.columns
+WHERE table_name = 'customer_orders';
+```
+
+<details>
+  <summary>
+    Result
+  </summary>
+  
+| table_name      | column_name | data_type                   |
+| --------------- | ----------- | --------------------------- |
+| customer_orders | order_id    | integer                     |
+| customer_orders | customer_id | integer                     |
+| customer_orders | pizza_id    | integer                     |
+| customer_orders | order_time  | timestamp without time zone |
+| customer_orders | exclusions  | character varying           |
+| customer_orders | extras      | character varying           |
+ 
+</details>
+
+```sql
+SELECT 
+  table_name,
+  column_name,
+  data_type
+FROM information_schema.columns
+WHERE table_name = 'runner_orders';
+```
+
+<details>
+  <summary>
+    Result
+  </summary>
+  
+| table_name    | column_name  | data_type         |
+| ------------- | ------------ | ----------------- |
+| runner_orders | order_id     | integer           |
+| runner_orders | runner_id    | integer           |
+| runner_orders | pickup_time  | character varying |
+| runner_orders | distance     | character varying |
+| runner_orders | duration     | character varying |
+| runner_orders | cancellation | character varying |
+ 
+</details>
+
+---> ```pickup_time``` is supposed to be ```timestamp```
+
+---> ```distance``` and ```duration``` are supposed to be ```numeric```
+
+
 
 ### 🧹Data Cleaning 
 - There are some missing values in ```customer_orders``` and ```runner_orders``` table that indicates either as ***blank strings ' '*** or as text ***'Null'*** instead of ```Null``` type. 
 - The display of unit is not consitent across ```distance``` and ```duration``` column in ```runner_orders``` table.
+- Incorrect data type in ```distance```, ```duration```, and ```pickup_time``` column in ```runner_orders``` table. 
 
 ---> ```customer_orders```: Creare a temporary table that replaces ***blank strings*** and ***Null (as text)*** with ```Null type``` 
 
@@ -207,7 +265,7 @@ SELECT * FROM customer_orders_cleaned;
 | 10       | 104         | 1        | 2, 6       | 1, 4   | 2020-01-11T18:34:49.000Z |
 </details>
 
----> ```runner_orders```: Create a temporary table that replaces the ***blank strings*** and ***null (as text)*** with ```Null``` value. Aditionally, remove the units from ```distance``` and ```duration``` colummn for consistency. 
+---> ```runner_orders```: Create a temporary table that replaces the ***blank strings*** and ***null (as text)*** with ```Null``` value. Aditionally, remove the units from ```distance``` and ```duration``` colummn for consistency. Finally, convert data type of ```distance```, ```duration```, and ```pickup_time``` into the correct type.
 
 ```sql
 DROP TABLE IF EXISTS runner_oders_cleaned;
@@ -219,19 +277,19 @@ CREATE TEMP TABLE runner_orders_cleaned AS (
   	CASE 
   		WHEN pickup_time = 'null' THEN NULL
   		ELSE pickup_time
-  	END AS pickup_time, 
+  	END :: TIMESTAMP AS pickup_time, 
   	CASE 
   		WHEN distance = 'null' THEN NULL
   		WHEN distance LIKE '%km' THEN TRIM('km' FROM distance)
   		ELSE distance
-  	END AS distance,
+  	END :: FLOAT AS distance,
   	CASE 
   		WHEN duration = 'null' THEN NULL
   		WHEN duration LIKE '%minutes' THEN TRIM('minutes' FROM duration)
   		WHEN duration LIKE '%minute' THEN TRIM('minute' FROM duration)
   		WHEN duration LIKE '%mins' THEN TRIM('mins' FROM duration) 
   		ELSE duration
-  	END AS duration,
+  	END :: INT AS duration,
   	CASE 
     	WHEN cancellation IN ('', 'null') THEN NULL
   		ELSE cancellation
@@ -245,20 +303,47 @@ SELECT * FROM runner_orders_cleaned;
      Result
   </summary>
   
-| order_id | runner_id | pickup_time         | distance | duration | cancellation            |
-| -------- | --------- | ------------------- | -------- | -------- | ----------------------- |
-| 1        | 1         | 2020-01-01 18:15:34 | 20       | 32       |                         |
-| 2        | 1         | 2020-01-01 19:10:54 | 20       | 27       |                         |
-| 3        | 1         | 2020-01-03 00:12:37 | 13.4     | 20       |                         |
-| 4        | 2         | 2020-01-04 13:53:03 | 23.4     | 40       |                         |
-| 5        | 3         | 2020-01-08 21:10:57 | 10       | 15       |                         |
-| 6        | 3         |                     |          |          | Restaurant Cancellation |
-| 7        | 2         | 2020-01-08 21:30:45 | 25       | 25       |                         |
-| 8        | 2         | 2020-01-10 00:15:02 | 23.4     | 15       |                         |
-| 9        | 2         |                     |          |          | Customer Cancellation   |
-| 10       | 1         | 2020-01-11 18:50:20 | 10       | 10       |                         |
+| order_id | runner_id | pickup_time              | distance | duration | cancellation            |
+| -------- | --------- | ------------------------ | -------- | -------- | ----------------------- |
+| 1        | 1         | 2020-01-01T18:15:34.000Z | 20       | 32       |                         |
+| 2        | 1         | 2020-01-01T19:10:54.000Z | 20       | 27       |                         |
+| 3        | 1         | 2020-01-03T00:12:37.000Z | 13.4     | 20       |                         |
+| 4        | 2         | 2020-01-04T13:53:03.000Z | 23.4     | 40       |                         |
+| 5        | 3         | 2020-01-08T21:10:57.000Z | 10       | 15       |                         |
+| 6        | 3         |                          |          |          | Restaurant Cancellation |
+| 7        | 2         | 2020-01-08T21:30:45.000Z | 25       | 25       |                         |
+| 8        | 2         | 2020-01-10T00:15:02.000Z | 23.4     | 15       |                         |
+| 9        | 2         |                          |          |          | Customer Cancellation   |
+| 10       | 1         | 2020-01-11T18:50:20.000Z | 10       | 10       |                         |
 
 </details>
+
+**✔️Check Data Type of ```runner_orders_cleaned```**
+```sql
+SELECT 
+  table_name,
+  column_name,
+  data_type
+FROM information_schema.columns
+WHERE table_name = 'runner_orders_cleaned';
+```
+
+<details>
+  <summary>
+    Result
+  </summary>
+  
+| table_name            | column_name  | data_type                   |
+| --------------------- | ------------ | --------------------------- |
+| runner_orders_cleaned | order_id     | integer                     |
+| runner_orders_cleaned | runner_id    | integer                     |
+| runner_orders_cleaned | pickup_time  | timestamp without time zone |
+| runner_orders_cleaned | distance     | double precision            |
+| runner_orders_cleaned | duration     | integer                     |
+| runner_orders_cleaned | cancellation | character varying           |
+  
+</details>
+
 
 ### A. Pizza Metrics
 
