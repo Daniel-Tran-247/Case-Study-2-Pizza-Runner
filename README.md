@@ -153,11 +153,112 @@ SELECT * FROM pizza_runner.pizza_toppings;
 
  
 ## 🎯Questions & Solutions
+### ✔️Data Type Check
+
 ### 🧹Data Cleaning 
 - There are some missing values in ```customer_orders``` and ```runner_orders``` table that indicates either as ***blank strings ' '*** or as text ***'Null'*** instead of ```Null``` type. 
 - The display of unit is not consitent across ```distance``` and ```duration``` column in ```runner_orders``` table.
 
----> Creare a temporary table that replaces ***blank strings*** and ***Null (as text)*** with ```Null type```  
+---> ```customer_orders```: Creare a temporary table that replaces ***blank strings*** and ***Null (as text)*** with ```Null type``` 
+
+```sql
+DROP TABLE IF EXISTS customer_orders_cleaned;
+
+CREATE TEMP TABLE customer_orders_cleaned AS (
+  SELECT 
+  	order_id,
+  	customer_id,
+  	pizza_id, 
+  	CASE 
+  		WHEN exclusions = '' THEN NULL
+  		WHEN exclusions = 'null' THEN NULL
+  		ELSE exclusions
+  	END AS exclusions, 
+  	CASE 
+  		WHEN extras = '' THEN NULL
+  		WHEN extras = 'null' THEN NULL
+  		ELSE extras
+  	END AS extras,
+  	order_time
+  FROM pizza_runner.customer_orders);
+
+SELECT * FROM customer_orders_cleaned;
+```
+<details>
+   <summary>
+     Result
+  </summary>
+  
+| order_id | customer_id | pizza_id | exclusions | extras | order_time               |
+| -------- | ----------- | -------- | ---------- | ------ | ------------------------ |
+| 1        | 101         | 1        |            |        | 2020-01-01T18:05:02.000Z |
+| 2        | 101         | 1        |            |        | 2020-01-01T19:00:52.000Z |
+| 3        | 102         | 1        |            |        | 2020-01-02T23:51:23.000Z |
+| 3        | 102         | 2        |            |        | 2020-01-02T23:51:23.000Z |
+| 4        | 103         | 1        | 4          |        | 2020-01-04T13:23:46.000Z |
+| 4        | 103         | 1        | 4          |        | 2020-01-04T13:23:46.000Z |
+| 4        | 103         | 2        | 4          |        | 2020-01-04T13:23:46.000Z |
+| 5        | 104         | 1        |            | 1      | 2020-01-08T21:00:29.000Z |
+| 6        | 101         | 2        |            |        | 2020-01-08T21:03:13.000Z |
+| 7        | 105         | 2        |            | 1      | 2020-01-08T21:20:29.000Z |
+| 8        | 102         | 1        |            |        | 2020-01-09T23:54:33.000Z |
+| 9        | 103         | 1        | 4          | 1, 5   | 2020-01-10T11:22:59.000Z |
+| 10       | 104         | 1        |            |        | 2020-01-11T18:34:49.000Z |
+| 10       | 104         | 1        | 2, 6       | 1, 4   | 2020-01-11T18:34:49.000Z |
+</details>
+
+---> ```runner_orders```: Create a temporary table that replaces the ***blank strings*** and ***null (as text)*** with ```Null``` value. Aditionally, remove the units from ```distance``` and ```duration``` colummn for consistency. 
+
+```sql
+DROP TABLE IF EXISTS runner_oders_cleaned;
+
+CREATE TEMP TABLE runner_orders_cleaned AS (
+  SELECT 
+  	order_id,
+  	runner_id,
+  	CASE 
+  		WHEN pickup_time = 'null' THEN NULL
+  		ELSE pickup_time
+  	END AS pickup_time, 
+  	CASE 
+  		WHEN distance = 'null' THEN NULL
+  		WHEN distance LIKE '%km' THEN TRIM('km' FROM distance)
+  		ELSE distance
+  	END AS distance,
+  	CASE 
+  		WHEN duration = 'null' THEN NULL
+  		WHEN duration LIKE '%minutes' THEN TRIM('minutes' FROM duration)
+  		WHEN duration LIKE '%minute' THEN TRIM('minute' FROM duration)
+  		WHEN duration LIKE '%mins' THEN TRIM('mins' FROM duration) 
+  		ELSE duration
+  	END AS duration,
+  	CASE 
+    	WHEN cancellation IN ('', 'null') THEN NULL
+  		ELSE cancellation
+  	END AS cancellation
+  FROM pizza_runner.runner_orders);
+
+SELECT * FROM runner_orders_cleaned;
+```
+<details>
+   <summary>
+     Result
+  </summary>
+  
+| order_id | runner_id | pickup_time         | distance | duration | cancellation            |
+| -------- | --------- | ------------------- | -------- | -------- | ----------------------- |
+| 1        | 1         | 2020-01-01 18:15:34 | 20       | 32       |                         |
+| 2        | 1         | 2020-01-01 19:10:54 | 20       | 27       |                         |
+| 3        | 1         | 2020-01-03 00:12:37 | 13.4     | 20       |                         |
+| 4        | 2         | 2020-01-04 13:53:03 | 23.4     | 40       |                         |
+| 5        | 3         | 2020-01-08 21:10:57 | 10       | 15       |                         |
+| 6        | 3         |                     |          |          | Restaurant Cancellation |
+| 7        | 2         | 2020-01-08 21:30:45 | 25       | 25       |                         |
+| 8        | 2         | 2020-01-10 00:15:02 | 23.4     | 15       |                         |
+| 9        | 2         |                     |          |          | Customer Cancellation   |
+| 10       | 1         | 2020-01-11 18:50:20 | 10       | 10       |                         |
+
+</details>
 
 ### A. Pizza Metrics
 
