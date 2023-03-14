@@ -349,14 +349,250 @@ WHERE table_name = 'runner_orders_cleaned';
 
 <details>
   <summary>
-    Result
+    View Questionss & Solutions
   </summary>
   
   ### Q1. How many pizzas were ordered?
-  ### Q2. How many unique customer orders were made?
-  ### Q3. How many successful orders were delivered by each runner?
+  ```sql
+  SELECT 
+    COUNT(order_id) AS pizza_count 
+  FROM customer_orders_cleaned;
+  ```
+  <details>
+    <summary>
+      Result
+    </summary>
+    
+| pizza_count |
+| ----------- |
+| 14          |
+    
+  </details>
 
+  
+  ### Q2. How many unique customer orders were made?
+  ```sql
+  SELECT 
+    COUNT(DISTINCT order_id) AS order_count 
+  FROM customer_orders_cleaned;
+  ```
+  <details>
+    <summary>
+      Result
+    </summary>
+    
+| order_count |
+| ----------- |
+| 10          |
+    
+  </details>
+  
+  ### Q3. How many successful orders were delivered by each runner?
+  ```sql
+  SELECT 
+    runner_id,
+    COUNT(order_id) AS successful_order_count
+  FROM runner_orders_cleaned
+  WHERE cancellation IS NULL
+  GROUP BY runner_id;
+  ```
+  <details>
+    <summary>
+      Result
+    </summary>
+    
+| runner_id | successful_order_count |
+| --------- | ---------------------- |
+| 1         | 4                      |
+| 2         | 3                      |
+| 3         | 1                      |
+    
+  </details>
+  
+  ### Q4. How many of each type of pizza was delivered?
+  ```sql
+  SELECT 
+    pizza_name,
+      COUNT(pizza_id) AS delivered_pizza_count
+  FROM runner_orders_cleaned
+  JOIN customer_orders_cleaned 
+  USING(order_id)
+  JOIN pizza_runner.pizza_names
+  USING(pizza_id)
+  WHERE cancellation IS NULL
+  GROUP BY pizza_name;  
+  ```
+  <details>
+    <summary>
+      Result
+    </summary>
+    
+| pizza_name | delivered_pizza_count |
+| ---------- | ----- |
+| Vegetarian | 3     |
+| Meatlovers | 9     |
+    
+  </details>
+  
+  ### Q5. How many Vegeterian and Meatlovers were ordered by each customer?
+  ```sql
+  SELECT 
+    customer_id,
+      pizza_name,
+      COUNT(pizza_id) AS ordered_pizza_count
+  FROM runner_orders_cleaned
+  JOIN customer_orders_cleaned 
+  USING(order_id)
+  JOIN pizza_runner.pizza_names
+  USING(pizza_id)
+  GROUP BY customer_id, pizza_name
+  ORDER BY customer_id  
+  ```
+  <details>
+    <summary>
+      Result
+    </summary>
+    
+| customer_id | pizza_name | ordered_pizza_count |
+| ----------- | ---------- | ----- |
+| 101         | Meatlovers | 2     |
+| 101         | Vegetarian | 1     |
+| 102         | Meatlovers | 2     |
+| 102         | Vegetarian | 1     |
+| 103         | Meatlovers | 3     |
+| 103         | Vegetarian | 1     |
+| 104         | Meatlovers | 3     |
+| 105         | Vegetarian | 1     |
+    
+  </details>
+  
+  ### Q6. What was the maximum number of pizzas devilvered in a single order?
+  ```sql
+  SELECT 
+    MAX(delivered_pizza_count)
+  FROM (
+    SELECT 
+        order_id,
+        COUNT(pizza_id) AS delivered_pizza_count
+    FROM runner_orders_cleaned
+    JOIN customer_orders_cleaned 
+    USING(order_id)
+    WHERE cancellation IS NULL
+    GROUP BY order_id
+    ORDER BY order_id ) AS delivered_pizza
+  ```
+  <details>
+    <summary>
+      Result
+    </summary>
+    
+| max |
+| ----|
+| 3   |
+    
+  </details>
+  
+  ### Q7. For each customer, how many delivered pizzas had at least 1 change and how many had no changes?
+  ```sql
+  SELECT 
+      customer_id, 
+      SUM(CASE WHEN (exclusions IS NOT NULL) OR (extras IS NOT NULL) THEN 1 ELSE 0 END) AS at_least_1_change,
+      SUM(CASE WHEN (exclusions IS NULL) AND (extras IS NULL) THEN 1 ELSE 0 END) AS no_change
+  FROM runner_orders_cleaned
+  JOIN customer_orders_cleaned 
+  USING(order_id)
+  WHERE cancellation IS NULL
+  GROUP BY customer_id
+  ORDER BY customer_id  
+  ```
+  <details>
+    <summary>
+      Result
+    </summary>
+    
+| customer_id | at_least_1_change | no_change |
+| ----------- | ----------------- | --------- |
+| 101         | 0                 | 2         |
+| 102         | 0                 | 3         |
+| 103         | 3                 | 0         |
+| 104         | 2                 | 1         |
+| 105         | 1                 | 0         |
+    
+  </details>
+  
+  ### Q8. How many pizzas were delivered that had both exclusions and extras?
+  ```sql
+  SELECT 
+  	COUNT(pizza_id) AS pizza_count
+  FROM runner_orders_cleaned
+  JOIN customer_orders_cleaned 
+  USING(order_id)
+  WHERE cancellation IS NULL AND (extras IS NOT NULL) AND (exclusions IS NOT NULL)   
+  ```
+  
+  <details>
+    <summary>
+      Result
+    </summary>
+    
+| pizza_count |
+| ----------- |
+| 1           |
+    
+  </details>
+  
+  ###  Q9. What was the total volume of pizzas ordered for each hour of the day?
+  ```sql
+  SELECT 
+  	DATE_PART('HOUR', order_time) AS hour_of_day,
+  	COUNT(pizza_id) AS order_count
+  FROM customer_orders_cleaned
+  GROUP BY hour_of_day
+  ORDER BY hour_of_day
+  ```
+  
+  <details>
+    <summary>
+      Result
+    </summary>
+    
+| hour_of_day | order_count |
+| ----------- | ----------- |
+| 11          | 1           |
+| 13          | 3           |
+| 18          | 3           |
+| 19          | 1           |
+| 21          | 3           |
+| 23          | 3           |
+    
+  </details>
+
+  ### Q10. What was the volume of orders for each day of week?
+  ```sql
+  SELECT
+  	TO_CHAR(order_time, 'day') AS day_of_week,
+  	COUNT(pizza_id) AS order_count
+  FROM customer_orders_cleaned
+  GROUP BY day_of_week
+  ORDER BY day_of_week
+  ```
+  
+  <details>
+    <summary>
+      Result
+    </summary>
+    
+| day_of_week | order_count |
+| ----------- | ----------- |
+| friday      | 1           |
+| saturday    | 5           |
+| thursday    | 3           |
+| wednesday   | 5           |
+    
+  </details>
 </details>
+  
+  
 
 ### B. Runner and Customer Experience 
 ### C. Ingredient Optimisation
