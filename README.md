@@ -591,12 +591,4 @@ WHERE table_name = 'runner_orders_cleaned';
     
   </details>
 </details>
-  
-  
-
-### B. Runner and Customer Experience 
-### C. Ingredient Optimisation
-### D. Pricing and Ratings
-### E. Bonnus Questions 
- 
  
